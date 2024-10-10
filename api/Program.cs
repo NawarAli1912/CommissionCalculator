@@ -1,36 +1,55 @@
+using FCamara.CommissionCalculator.Middlewares;
+using FCamara.CommissionCalculator.Services;
+using FCamara.CommissionCalculator.Services.Interfaces;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 
-namespace FCamara.CommissionCalculator
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+
+builder.Services.AddControllers();
+
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+builder.Services.AddScoped<ICommissionCalculatorService, CommissionCalculatorService>();
+builder.Services.AddCors(options =>
 {
-    public class Program
-    {
-        public static void Main(string[] args)
+    options.AddPolicy("AllowSpecificOrigin",
+        builder =>
         {
-            var builder = WebApplication.CreateBuilder(args);
-
-            // Add services to the container.
-
-            builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-            builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
-
-            var app = builder.Build();
-
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
-            {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
-
-            app.UseHttpsRedirection();
-
-            app.UseAuthorization();
+            builder.WithOrigins("http://localhost:3000")
+                .AllowAnyMethod()
+                .AllowAnyHeader();
+        });
+});
 
 
-            app.MapControllers();
 
-            app.Run();
-        }
-    }
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
+
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+
+app.UseHttpsRedirection();
+
+app.UseCors("AllowSpecificOrigin");
+
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();
